@@ -323,7 +323,8 @@
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3 border-bottom pb-3">
                 <h3 class="fw-bold mb-0 text-dark-theme"><i class="bi bi-calendar3 text-primary-theme me-2"></i>Buku Rekap Bulanan Absensi</h3>
                 <div class="d-flex gap-2 flex-wrap">
-                    <select class="form-select fw-bold border-secondary bg-white text-dark" id="absensiBulanSelect" style="width: 150px;" onchange="loadAbsensiTable()"><option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option><option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option><option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option><option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option></select>
+                    <!-- PERUBAHAN DI SINI: onchange sekarang memanggil loadAbsensiDataFromServer() -->
+                    <select class="form-select fw-bold border-secondary bg-white text-dark" id="absensiBulanSelect" style="width: 150px;" onchange="loadAbsensiDataFromServer()"><option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option><option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option><option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option><option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option></select>
                     <select class="form-select fw-bold border-secondary bg-white text-dark" id="absensiKelasSelect" style="width: 100px;" onchange="loadAbsensiTable()"><option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="9D">9D</option><option value="9E">9E</option><option value="9F">9F</option><option value="9G">9G</option><option value="9H">9H</option><option value="9I">9I</option><option value="8J">8J</option><option value="9K">9K</option></select>
                     <button class="btn btn-warning fw-bold text-dark border border-dark" onclick="simpanDataAbsensi()"><i class="bi bi-save me-1"></i> Simpan Data</button>
                     <button class="btn btn-success fw-bold border border-dark" onclick="exportAbsensiToExcel()"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</button>
@@ -851,7 +852,31 @@
     function editServerCommentPrompt(id, oldTeks) { let n = prompt("Edit Komentar Anda:", oldTeks); if(n && n.trim() !== "") { fetch(SCRIPT_URL, {method:'POST', body:JSON.stringify({action:'editComment', komentarId:id, teks:n, userId: getMyId(), userRole: currentUser?currentUser.role:'tamu'})}).then(()=>loadServerComments(activeKomentarTargetId)); } }
 
     function setupAbsensiHeader() { let trTgl = document.getElementById('absensiHeaderTgl'); let html = ''; for(let i=1; i<=31; i++) html += `<th class="text-center" style="font-size:11px; padding:4px;">${i}</th>`; html += `<th class="text-center text-success" style="font-size:11px; width:35px;">H</th><th class="text-center text-warning" style="font-size:11px; width:35px;">S</th><th class="text-center text-info" style="font-size:11px; width:35px;">I</th><th class="text-center text-danger" style="font-size:11px; width:35px;">A</th>`; trTgl.innerHTML = html; }
-    function loadAbsensiDataFromServer() { let bulan = document.getElementById('absensiBulanSelect').value; fetch(`${SCRIPT_URL}?action=getAbsensi&bulan=${bulan}`).then(r=>r.json()).then(d=>{ if(d.success) { absensiCache = d.data; loadAbsensiTable(); } }); }
+    
+    // FUNGSI INI KITA PERBARUI AGAR BISA MEMBERIKAN EFEK LOADING SAAT MENGGANTI BULAN
+    function loadAbsensiDataFromServer() { 
+        let bulan = document.getElementById('absensiBulanSelect').value; 
+        
+        // Tambahkan efek loading di tabel
+        document.getElementById('absensiTableBody').innerHTML = `<tr><td colspan="39" class="text-center py-5 text-dark"><span class="spinner-border spinner-border-sm"></span> Sedang memuat absensi bulan ${bulan}...</td></tr>`;
+        
+        fetch(`${SCRIPT_URL}?action=getAbsensi&bulan=${bulan}`)
+        .then(r=>r.json())
+        .then(d=>{ 
+            if(d.success) { 
+                absensiCache = d.data || {}; // Update memori dengan data bulan yang baru ditarik
+                loadAbsensiTable(); 
+            } else {
+                absensiCache = {}; // Jika tidak ada, bersihkan agar kosong
+                loadAbsensiTable();
+            }
+        })
+        .catch(err => {
+            absensiCache = {};
+            loadAbsensiTable();
+        });
+    }
+
     function loadAbsensiTable() { let bulan = document.getElementById('absensiBulanSelect').value; let kelas = document.getElementById('absensiKelasSelect').value; let tbody = document.getElementById('absensiTableBody'); tbody.innerHTML = ''; let siswaKelas = allStudentsData.filter(s => s.kelas === kelas).sort((a,b)=>a.nama.localeCompare(b.nama)); if(siswaKelas.length === 0) return tbody.innerHTML = '<tr><td colspan="39" class="text-center py-4 text-dark">Data siswa belum ada.</td></tr>'; if(!absensiCache[kelas]) absensiCache[kelas] = {}; let html = ''; siswaKelas.forEach((s, idx) => { let dataSiswa = absensiCache[kelas][s.username] || {}; let tglHtml = ''; let tH=0, tS=0, tI=0, tA=0; for(let i=1; i<=31; i++) { let status = dataSiswa[i] || ''; if(status==='H') tH++; else if(status==='S') tS++; else if(status==='I') tI++; else if(status==='A') tA++; tglHtml += `<td class="cell-date cell-${status}" onclick="toggleAbsensiCell(this, '${s.username}', ${i})" data-status="${status}">${status}</td>`; } html += `<tr><td class="text-center text-dark">${idx+1}</td><td class="text-start text-dark" style="font-size:12px;">${s.nama}</td><td class="text-center text-dark" style="font-size:11px;">${s.username}</td><td class="text-center text-dark">-</td>${tglHtml}<td class="text-center text-success fw-bold bg-light" id="totH_${s.username}">${tH}</td><td class="text-center text-warning fw-bold bg-light" id="totS_${s.username}">${tS}</td><td class="text-center text-info fw-bold bg-light" id="totI_${s.username}">${tI}</td><td class="text-center text-danger fw-bold bg-light" id="totA_${s.username}">${tA}</td></tr>`; }); tbody.innerHTML = html; }
     function toggleAbsensiCell(td, nisn, tgl) { let current = td.getAttribute('data-status'); let next = ''; if(current === '') next = 'H'; else if(current === 'H') next = 'S'; else if(current === 'S') next = 'I'; else if(current === 'I') next = 'A'; else next = ''; td.setAttribute('data-status', next); td.innerText = next; td.className = `cell-date cell-${next}`; let kelas = document.getElementById('absensiKelasSelect').value; if(!absensiCache[kelas][nisn]) absensiCache[kelas][nisn] = {}; absensiCache[kelas][nisn][tgl] = next; hitungTotalSiswaVisual(nisn, kelas); }
     function hitungTotalSiswaVisual(nisn, kelas) { let d = absensiCache[kelas][nisn] || {}; let tH=0, tS=0, tI=0, tA=0; for(let i=1; i<=31; i++) { let st = d[i]; if(st==='H') tH++; else if(st==='S') tS++; else if(st==='I') tI++; else if(st==='A') tA++; } document.getElementById(`totH_${nisn}`).innerText = tH; document.getElementById(`totS_${nisn}`).innerText = tS; document.getElementById(`totI_${nisn}`).innerText = tI; document.getElementById(`totA_${nisn}`).innerText = tA; }
