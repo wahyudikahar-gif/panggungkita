@@ -106,7 +106,7 @@
 <!-- PORTAL LOGIN -->
 <div id="view-portal" class="auth-container">
     <div class="login-card text-center" style="background:#fff; color:#333;">
-        <img src="LOGO_4.png" alt="Logo Panggung Kita" style="height: 60px; margin-bottom: 15px; object-fit: contain;">
+        <img id="logoPortal" src="LOGO_6.png" alt="Logo Panggung Kita" style="height: 60px; margin-bottom: 15px; object-fit: contain;">
         <div class="d-flex justify-content-between align-items-center mb-1">
             <h4 class="fw-bold mb-0 text-primary w-100" style="color:var(--primary-news)!important">PANGGUNG KITA</h4>
             <button class="btn-close position-absolute" style="right: 20px; top: 20px;" onclick="tutupPortalLogin()"></button>
@@ -137,7 +137,7 @@
 <div class="container-fluid p-0">
     <div class="top-navbar d-flex justify-content-between align-items-center flex-wrap px-4 py-2">
         <div class="d-flex align-items-center text-white gap-3">
-            <img src="LOGO_4.png" alt="Logo" style="height: 35px; object-fit: contain;">
+            <img id="logoNavbar" src="LOGO_6.png" alt="Logo" style="height: 35px; object-fit: contain;">
             <h5 class="fw-bold mb-0" style="color: var(--gold-trim);">PANGGUNG KITA</h5>
             <span class="text-muted small d-none d-md-inline" style="color:#d7ccc8!important;">| Koran Digital Teater SMPN 3 Balikpapan</span>
         </div>
@@ -163,7 +163,11 @@
     <div class="main-content">
         <!-- BERANDA WARTA -->
         <div id="content-beranda" class="menu-content">
-            <div class="masthead mb-4 rounded"><div class="masthead-title">Panggung Kita</div><div class="text-uppercase tracking-wider text-muted small fw-bold mt-2">Koran Digital Seni Teater & Literasi Sispensari</div></div>
+            
+            <!-- MASTHEAD / HEADER WEB DENGAN LOGO -->
+            <div class="masthead mb-4 rounded">
+                <img id="logoMasthead" src="LOGO_6.png" alt="Logo Panggung Kita" style="height: 250px; max-width: 100%; object-fit: contain; margin-bottom: 0; transition: height 0.3s;">
+            </div>
             
             <div id="studentPersonalCard" class="card border-0 shadow-sm p-4 mb-4 d-none" style="background: linear-gradient(135deg, #2c1e16, #8b5a2b); color: white; border-radius: 12px;">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -230,7 +234,6 @@
             </div>
         </div>
 
-        <!-- MANAJEMEN PRODUKSI, KONSULTASI, REKAP, ABSENSI, DB SISWA (KODE TETAP AMAN) -->
         <!-- MANAJEMEN PRODUKSI -->
         <div id="content-produksi" class="menu-content d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -362,8 +365,25 @@
             </div>
         </div>
 
-        <!-- PENGATURAN TEMA -->
+        <!-- PENGATURAN TEMA DAN LOGO -->
         <div id="content-pengaturan" class="menu-content d-none">
+            <h3 class="fw-bold mb-4 text-dark-theme"><i class="bi bi-image text-primary-theme me-2"></i>Pengaturan Logo Aplikasi</h3>
+            <div class="card bg-white shadow-sm border p-3 mb-5">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <img id="previewSettingsLogo" src="LOGO_6.png" alt="Logo Custom" style="height: 80px; width: auto; object-fit: contain; border: 1px dashed #ccc; padding: 5px; border-radius: 6px;">
+                    <div>
+                        <input type="file" id="customLogoInput" class="form-control form-control-sm mb-2" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="previewAndSaveLogo(this)">
+                        <button class="btn btn-sm btn-primary fw-bold me-1" onclick="document.getElementById('customLogoInput').click()"><i class="bi bi-pencil-square me-1"></i> Ganti Logo</button>
+                        <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusLogoCustom()"><i class="bi bi-trash me-1"></i> Hapus / Reset Logo</button>
+                        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Logo kustom akan disimpan di browser perangkat Anda untuk mempercantik tampilan.</div>
+                    </div>
+                </div>
+                <div class="mt-4 border-top pt-3">
+                    <label class="small fw-bold text-dark">Ukuran Logo Masthead Beranda: <span id="logoSizeLabel" class="text-primary">250px</span></label>
+                    <input type="range" class="form-range" id="logoSizeSlider" min="100" max="500" step="10" value="250" oninput="ubahUkuranLogo(this.value)">
+                </div>
+            </div>
+
             <h3 class="fw-bold mb-4 text-dark-theme"><i class="bi bi-palette-fill text-primary-theme me-2"></i>Pengaturan Tema Tampilan</h3>
             <div class="row g-4">
                 <div class="col-md-4">
@@ -475,10 +495,60 @@
 
         startLiveWidgets(); setupAbsensiHeader(); checkSessionPersistence(); 
         
-        // Init Theme
+        // Init Theme & Logo
         let savedTheme = localStorage.getItem('sispensari_theme') || 'default';
         applyTheme(savedTheme, document.getElementById('theme-'+savedTheme));
+        applyCustomLogo(); // Panggil pengaplikasian Logo Custom
     });
+
+    // PENGATURAN LOGO CUSTOM KESELURUHAN APLIKASI
+    function applyCustomLogo() {
+        let savedLogo = localStorage.getItem('sispensari_logo') || 'LOGO_6.png';
+        let savedSize = localStorage.getItem('sispensari_logo_size') || '250';
+        
+        let lPortal = document.getElementById('logoPortal');
+        let lNav = document.getElementById('logoNavbar');
+        let lMast = document.getElementById('logoMasthead');
+        let lSet = document.getElementById('previewSettingsLogo');
+        let slider = document.getElementById('logoSizeSlider');
+        let labelSize = document.getElementById('logoSizeLabel');
+        
+        if(lPortal) lPortal.src = savedLogo;
+        if(lNav) lNav.src = savedLogo;
+        if(lMast) {
+            lMast.src = savedLogo;
+            lMast.style.height = savedSize + 'px';
+            lMast.style.display = savedLogo === 'none' ? 'none' : 'inline-block';
+        }
+        if(lSet) lSet.src = savedLogo === 'none' ? 'LOGO_6.png' : savedLogo;
+        if(slider && labelSize) {
+            slider.value = savedSize;
+            labelSize.innerText = savedSize + 'px';
+        }
+    }
+
+    function previewAndSaveLogo(input) {
+        if (input.files && input.files[0]) {
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let base64Logo = e.target.result;
+                localStorage.setItem('sispensari_logo', base64Logo);
+                applyCustomLogo();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function hapusLogoCustom() {
+        localStorage.removeItem('sispensari_logo');
+        localStorage.setItem('sispensari_logo', 'LOGO_6.png'); // Kembali ke bawaan default
+        applyCustomLogo();
+    }
+
+    function ubahUkuranLogo(val) {
+        localStorage.setItem('sispensari_logo_size', val);
+        applyCustomLogo();
+    }
 
     // PENGATURAN TEMA
     function applyTheme(themeName, elBox = null) {
@@ -489,8 +559,27 @@
         else { let box = document.getElementById('theme-'+themeName); if(box) box.classList.add('active'); }
     }
 
-    function startLiveWidgets() { setInterval(() => { let now = new Date(); document.getElementById('digitalClock').innerText = now.toLocaleTimeString('id-ID'); document.getElementById('digitalDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); }, 1000); pingActiveViewers(); setInterval(pingActiveViewers, 30000); }
-    function pingActiveViewers() { fetch(`${SCRIPT_URL}?action=ping&uid=${browserUID}`).then(r=>r.json()).then(d=>{ if(d.count) document.getElementById('visitorCount').innerText = d.count; }).catch(()=>{}); }
+    // SISTEM PING YANG AMAN DARI ERROR CONSOLE (FAIL-SAFE)
+    let pingFailCount = 0;
+    function startLiveWidgets() { 
+        setInterval(() => { 
+            let now = new Date(); 
+            document.getElementById('digitalClock').innerText = now.toLocaleTimeString('id-ID'); 
+            document.getElementById('digitalDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); 
+        }, 1000); 
+        pingActiveViewers(); 
+        setInterval(pingActiveViewers, 45000); // Naikkan interval agar tidak terlalu spam
+    }
+    function pingActiveViewers() { 
+        if (pingFailCount >= 3) return; // Jika gagal 3x berturut-turut, hentikan ping sementara agar tidak memenuhi console
+        fetch(`${SCRIPT_URL}?action=ping&uid=${browserUID}`)
+        .then(r=>r.json())
+        .then(d=>{ 
+            pingFailCount = 0; // reset jika sukses
+            if(d.count) document.getElementById('visitorCount').innerText = d.count; 
+        })
+        .catch(()=>{ pingFailCount++; }); // Error disembunyikan dan dihitung
+    }
 
     function checkSessionPersistence() {
         const savedUser = localStorage.getItem('sispensari_user');
@@ -585,8 +674,7 @@
                 if (type === 'berita') {
                     let bIdx = rawHomeData.berita.findIndex(x => x.id === id);
                     if(bIdx !== -1) { rawHomeData.berita[bIdx].likedBy = data.likedBy; rawHomeData.berita[bIdx].likes = data.likes; }
-                    if (elBtn) { /* Update list button handled by re-render if needed, but for modal: */ }
-                    else { // Modal detail context
+                    if (!elBtn) { 
                         document.getElementById('btnLoveDetail').className = `btn-love ${isLiked ? 'active' : ''}`; 
                         document.getElementById('btnLoveDetail').innerHTML = `<i class="bi ${isLiked ? 'bi-heart-fill text-danger' : 'bi-heart'}"></i>`; 
                         document.getElementById('loveCountDetail').innerText = `${data.likes} Menyukai`; 
@@ -628,7 +716,7 @@
         let list = videoList || [...(rawHomeData.video||[])]; 
         list = list.map(v => { let m = parseJSONSafe(v.deskripsi) || {d: v.deskripsi, t: new Date().toISOString(), v: 0, likedBy: []}; v.meta = m; return v; }); 
         
-        if(sort === 'populer') list.sort((a,b)=> (b.meta.v||0) - (a.meta.v||0)); // Teratas paling banyak diputar
+        if(sort === 'populer') list.sort((a,b)=> (b.meta.v||0) - (a.meta.v||0)); 
         else list.sort((a,b)=> new Date(b.meta.t||0) - new Date(a.meta.t||0)); 
         
         if(!videoList) generateArsipSidebar(list, 'videoArchiveContainer', filterVideoBulan); 
