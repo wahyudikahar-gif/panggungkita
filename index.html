@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISPEN-SARI | PANGGUNG KITA </title>
+    <title>SISPEN-SARI | PANGGUNG KITA - KORAN DIGITAL</title>
     <!-- Bootstrap 5 & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -103,6 +103,18 @@
     </style>
 </head>
 <body>
+
+<!-- GLOBAL LOADING SPLASH SCREEN -->
+<div id="globalLoader" class="d-flex flex-column align-items-center justify-content-center" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-slate); z-index:9999; transition:opacity 0.6s ease, visibility 0.6s ease;">
+    <img src="LOGO_6.png" alt="Logo" style="height:90px; margin-bottom:20px; animation: pulse 1.5s infinite;">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h5 class="mt-4 fw-bold text-dark" style="font-family:'Georgia', serif; letter-spacing: 1px;">Memuat Panggung Kita...</h5>
+    <small class="text-muted mt-2">Menyinkronkan data dari cloud</small>
+</div>
+<style>
+    @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+    body.app-ready #globalLoader { opacity: 0; visibility: hidden; pointer-events: none; }
+</style>
 
 <!-- PORTAL LOGIN -->
 <div id="view-portal" class="auth-container">
@@ -476,9 +488,6 @@
     let browserUID = localStorage.getItem('sispensari_uid') || 'uid_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('sispensari_uid', browserUID);
     let mKomentar, mVideo, mFoto, mBaca, mBerita, mZoom, mPreview, mEditSiswa, mImport;
 
-    // Lightbox Data
-    let lbData = []; let lbCurrent = 0;
-
     function getMyId() { return currentUser ? currentUser.username : browserUID; }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -487,130 +496,84 @@
         let htmlPertemuan = ''; for(let i=1; i<=30; i++) htmlPertemuan += `<option value="${i}">Ke ${i}</option>`;
         document.getElementById('prodPertemuanSelect').innerHTML = htmlPertemuan;
         
-        // Editor Gambar Reset
         document.getElementById('beritaEditor').addEventListener('click', function(e) { if (e.target.tagName === 'IMG') { selectedImageInEditor = e.target; document.getElementById('imageResizeToolbar').classList.remove('d-none'); document.getElementById('imageResizeToolbar').classList.add('d-flex'); } else { selectedImageInEditor = null; document.getElementById('imageResizeToolbar').classList.remove('d-flex'); document.getElementById('imageResizeToolbar').classList.add('d-none'); } });
         document.getElementById('prodTanggalInput').value = new Date().toISOString().split('T')[0];
         let monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]; document.getElementById('absensiBulanSelect').value = monthNames[new Date().getMonth()];
         
-        // Lightbox Keyboard Listener
         document.addEventListener('keydown', (e) => { if (document.getElementById('modalLightboxZoom').classList.contains('show') && lbData.length > 1) { if(e.key === 'ArrowLeft') lbNav(-1); if(e.key === 'ArrowRight') lbNav(1); } });
 
         startLiveWidgets(); setupAbsensiHeader(); checkSessionPersistence(); 
         
-        // Init Theme & Logo
         let savedTheme = localStorage.getItem('sispensari_theme') || 'default';
         applyTheme(savedTheme, document.getElementById('theme-'+savedTheme));
-        applyCustomLogo(); // Panggil pengaplikasian Logo Custom
+        applyCustomLogo(); 
     });
 
-    // PENGATURAN LOGO CUSTOM KESELURUHAN APLIKASI
     function applyCustomLogo() {
         let savedLogo = localStorage.getItem('sispensari_logo') || 'LOGO_6.png';
         let savedSize = localStorage.getItem('sispensari_logo_size') || '250';
         
-        let lPortal = document.getElementById('logoPortal');
-        let lNav = document.getElementById('logoNavbar');
-        let lMast = document.getElementById('logoMasthead');
-        let lSet = document.getElementById('previewSettingsLogo');
-        let slider = document.getElementById('logoSizeSlider');
-        let labelSize = document.getElementById('logoSizeLabel');
+        let lPortal = document.getElementById('logoPortal'); let lNav = document.getElementById('logoNavbar'); let lMast = document.getElementById('logoMasthead'); let lSet = document.getElementById('previewSettingsLogo'); let slider = document.getElementById('logoSizeSlider'); let labelSize = document.getElementById('logoSizeLabel');
         
         if(lPortal) lPortal.src = savedLogo;
         if(lNav) lNav.src = savedLogo;
-        if(lMast) {
-            lMast.src = savedLogo;
-            lMast.style.height = savedSize + 'px';
-            lMast.style.display = savedLogo === 'none' ? 'none' : 'inline-block';
-        }
+        if(lMast) { lMast.src = savedLogo; lMast.style.height = savedSize + 'px'; lMast.style.display = savedLogo === 'none' ? 'none' : 'inline-block'; }
         if(lSet) lSet.src = savedLogo === 'none' ? 'LOGO_6.png' : savedLogo;
-        if(slider && labelSize) {
-            slider.value = savedSize;
-            labelSize.innerText = savedSize + 'px';
-        }
+        if(slider && labelSize) { slider.value = savedSize; labelSize.innerText = savedSize + 'px'; }
     }
 
-    function previewAndSaveLogo(input) {
-        if (input.files && input.files[0]) {
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                let base64Logo = e.target.result;
-                localStorage.setItem('sispensari_logo', base64Logo);
-                applyCustomLogo();
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
+    function previewAndSaveLogo(input) { if (input.files && input.files[0]) { let reader = new FileReader(); reader.onload = function(e) { localStorage.setItem('sispensari_logo', e.target.result); applyCustomLogo(); }; reader.readAsDataURL(input.files[0]); } }
+    function hapusLogoCustom() { localStorage.removeItem('sispensari_logo'); localStorage.setItem('sispensari_logo', 'LOGO_6.png'); applyCustomLogo(); }
+    function ubahUkuranLogo(val) { localStorage.setItem('sispensari_logo_size', val); applyCustomLogo(); }
 
-    function hapusLogoCustom() {
-        localStorage.removeItem('sispensari_logo');
-        localStorage.setItem('sispensari_logo', 'LOGO_6.png'); // Kembali ke bawaan default
-        applyCustomLogo();
-    }
-
-    function ubahUkuranLogo(val) {
-        localStorage.setItem('sispensari_logo_size', val);
-        applyCustomLogo();
-    }
-
-    // PENGATURAN TEMA
     function applyTheme(themeName, elBox = null) {
         document.body.className = themeName === 'default' ? 'theme-default' : 'theme-' + themeName;
         localStorage.setItem('sispensari_theme', themeName);
         document.querySelectorAll('.theme-box').forEach(b => b.classList.remove('active'));
-        if(elBox) elBox.classList.add('active');
-        else { let box = document.getElementById('theme-'+themeName); if(box) box.classList.add('active'); }
+        if(elBox) elBox.classList.add('active'); else { let box = document.getElementById('theme-'+themeName); if(box) box.classList.add('active'); }
     }
 
-    // SISTEM PING YANG AMAN DARI ERROR CONSOLE (FAIL-SAFE)
     let pingFailCount = 0;
-    function startLiveWidgets() { 
-        setInterval(() => { 
-            let now = new Date(); 
-            document.getElementById('digitalClock').innerText = now.toLocaleTimeString('id-ID'); 
-            document.getElementById('digitalDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); 
-        }, 1000); 
-        pingActiveViewers(); 
-        setInterval(pingActiveViewers, 45000); // Naikkan interval agar tidak terlalu spam
-    }
-    function pingActiveViewers() { 
-        if (pingFailCount >= 3) return; // Jika gagal 3x berturut-turut, hentikan ping sementara agar tidak memenuhi console
-        fetch(`${SCRIPT_URL}?action=ping&uid=${browserUID}`)
-        .then(r=>r.json())
-        .then(d=>{ 
-            pingFailCount = 0; // reset jika sukses
-            if(d.count) document.getElementById('visitorCount').innerText = d.count; 
-        })
-        .catch(()=>{ pingFailCount++; }); // Error disembunyikan dan dihitung
-    }
+    function startLiveWidgets() { setInterval(() => { let now = new Date(); document.getElementById('digitalClock').innerText = now.toLocaleTimeString('id-ID'); document.getElementById('digitalDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); }, 1000); pingActiveViewers(); setInterval(pingActiveViewers, 45000); }
+    function pingActiveViewers() { if (pingFailCount >= 3) return; fetch(`${SCRIPT_URL}?action=ping&uid=${browserUID}`).then(r=>r.json()).then(d=>{ pingFailCount = 0; if(d.count) document.getElementById('visitorCount').innerText = d.count; }).catch(()=>{ pingFailCount++; }); }
 
     function checkSessionPersistence() {
         const savedUser = localStorage.getItem('sispensari_user');
         if (savedUser) { 
-            currentUser = JSON.parse(savedUser); document.getElementById('user-display-name').innerText = currentUser.nama; document.getElementById('user-badge').innerText = currentUser.role.toUpperCase(); 
+            currentUser = JSON.parse(savedUser); 
+            document.getElementById('user-display-name').innerText = currentUser.nama; 
+            document.getElementById('user-badge').innerText = currentUser.role.toUpperCase(); 
             if(currentUser.role === 'siswa') { document.getElementById('user-badge').className = 'badge bg-primary px-3 py-1'; loadStudentPersonalDashboard(currentUser.username); }
             if(currentUser.role === 'admin') { document.getElementById('user-badge').className = 'badge bg-danger px-3 py-1'; document.getElementById('nav-produksi').classList.remove('d-none'); }
         } else { 
-            currentUser = null; document.getElementById('user-display-name').innerText = 'Pengunjung Umum'; document.getElementById('user-badge').innerText = 'TAMU'; document.getElementById('user-badge').className = 'badge bg-secondary px-3 py-1';
+            currentUser = null; 
+            document.getElementById('user-display-name').innerText = 'Pengunjung Umum'; 
+            document.getElementById('user-badge').innerText = 'TAMU'; 
+            document.getElementById('user-badge').className = 'badge bg-secondary px-3 py-1'; 
         }
-        applyRoleAccessControl(); switchMenu(localStorage.getItem('sispensari_current_view') || 'beranda');
-        loadHomeContent(); loadStudentsData();
+        
+        applyRoleAccessControl(); 
+        switchMenu(localStorage.getItem('sispensari_current_view') || 'beranda');
+
+        // Promise untuk memastikan minimum loading 1 detik + fetch data
+        const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1200));
+        
+        // Memuat konten secara asinkron
+        loadHomeContent(); 
+        loadStudentsData();
+
+        // Setelah minimal 1.2 detik, sembunyikan layar loading
+        minLoadingTime.then(() => {
+            document.body.classList.add('app-ready');
+        });
     }
 
     function applyRoleAccessControl() {
         document.getElementById('btnTulisBerita').classList.add('admin-only', 'd-none'); document.getElementById('btnPostingVideo').classList.add('admin-only', 'd-none'); document.getElementById('btnUploadFoto').classList.add('admin-only', 'd-none');
-        if (currentUser && currentUser.role === 'admin') { 
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('d-none')); 
-            document.getElementById('topAuthBtn').innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Keluar'; document.getElementById('topAuthBtn').className = 'btn btn-sm btn-outline-danger ms-2'; document.getElementById('topAuthBtn').onclick = logout;
-        } else if (currentUser && currentUser.role === 'siswa') { 
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('d-none')); 
-            document.getElementById('topAuthBtn').innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Keluar'; document.getElementById('topAuthBtn').className = 'btn btn-sm btn-outline-danger ms-2'; document.getElementById('topAuthBtn').onclick = logout;
-        } else { 
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('d-none')); 
-            document.getElementById('topAuthBtn').innerHTML = '<i class="bi bi-lock me-1"></i>Login'; document.getElementById('topAuthBtn').className = 'btn btn-sm btn-outline-light ms-2'; document.getElementById('topAuthBtn').onclick = bukaPortalLogin; 
-        }
+        if (currentUser && currentUser.role === 'admin') { document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('d-none')); document.getElementById('topAuthBtn').innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Keluar'; document.getElementById('topAuthBtn').className = 'btn btn-sm btn-outline-danger ms-2'; document.getElementById('topAuthBtn').onclick = logout;
+        } else if (currentUser && currentUser.role === 'siswa') { document.querySelectorAll('.admin-only').forEach(el => el.classList.add('d-none')); document.getElementById('topAuthBtn').innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Keluar'; document.getElementById('topAuthBtn').className = 'btn btn-sm btn-outline-danger ms-2'; document.getElementById('topAuthBtn').onclick = logout;
+        } else { document.querySelectorAll('.admin-only').forEach(el => el.classList.add('d-none')); document.getElementById('topAuthBtn').innerHTML = '<i class="bi bi-lock me-1"></i>Login'; document.getElementById('topAuthBtn').className = 'btn btn-sm btn-outline-light ms-2'; document.getElementById('topAuthBtn').onclick = bukaPortalLogin; }
     }
-
-    function hitungPredikatAkhir(skor) { if (skor >= 86) return "Sangat Baik (Tuntas)"; if (skor >= 71) return "Baik (Tuntas)"; if (skor >= 56) return "Cukup (Belum Tuntas - Perlu Penguatan)"; return "Perlu Bimbingan (Belum Tuntas - Intervensi)"; }
 
     function switchMenu(menuKey) {
         localStorage.setItem('sispensari_current_view', menuKey);
@@ -634,9 +597,7 @@
     function loadStudentsData() { 
         let cache = localStorage.getItem('sispensari_students_cache');
         if(cache) { try { allStudentsData = JSON.parse(cache); renderStudentTable(); loadAbsensiDataFromServer(); } catch(e){} }
-        fetch(`${SCRIPT_URL}?action=getStudents&t=${new Date().getTime()}`).then(res => res.json()).then(data => { 
-            if (data.success) { try { localStorage.setItem('sispensari_students_cache', JSON.stringify(data.data)); } catch(e){} allStudentsData = data.data; renderStudentTable(); loadAbsensiDataFromServer(); } 
-        }); 
+        fetch(`${SCRIPT_URL}?action=getStudents&t=${new Date().getTime()}`).then(res => res.json()).then(data => { if (data.success) { try { localStorage.setItem('sispensari_students_cache', JSON.stringify(data.data)); } catch(e){} allStudentsData = data.data; renderStudentTable(); loadAbsensiDataFromServer(); } }); 
     }
 
     function loadHomeContent() {
@@ -655,14 +616,12 @@
     function cetakRaporPortofolioPeran() { if(!currentUser || currentUser.role !== 'siswa' || !window.currentDashboardDataCache) return alert("Hanya siswa aktif yang dapat mencetak portofolio."); let data = window.currentDashboardDataCache; let html = `<div style="text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;"><h2 style="margin:0;">RAPOR PORTOFOLIO PERAN & PEMBELAJARAN MENDALAM</h2><h4 style="margin:5px 0;">PRODUKSI TEATER - PANGGUNG KITA</h4></div><table style="width:100%; margin-bottom:20px; font-size:14px;"><tr><td width="150"><strong>Nama Siswa</strong></td><td>: ${currentUser.nama}</td></tr><tr><td><strong>NISN / Kelas</strong></td><td>: ${currentUser.username} / ${currentUser.kelas}</td></tr><tr><td><strong>Jabatan / Peran</strong></td><td>: ${data.infoJabatan.jabatan.toUpperCase()}</td></tr><tr><td><strong>Fokus Jobdesk</strong></td><td>: ${data.infoJabatan.jobdesk || '-'}</td></tr></table><div style="background:#fdfbf7; padding:15px; border:2px solid #8b5a2b; border-radius:8px; margin-bottom:20px;"><h3 style="margin-top:0; color:#8b5a2b; text-align:center;">Pencapaian Interval KKTP: ${data.rataRata} / 100</h3><h4 style="text-align:center; margin-bottom:0;">Deskripsi Pencapaian:<br>${data.predikatUtama}</h4></div><h4 style="border-bottom:1px solid #ccc; padding-bottom:5px;">Riwayat Evaluasi (Refleksi Proses Pembelajaran)</h4>`; if(data.riwayatLog.length === 0) { html += `<p style="font-size:14px; font-style:italic;">Belum ada catatan refleksi harian pada sistem.</p>`; } else { data.riwayatLog.forEach(l => { html += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom:1px dashed #eee; font-size:14px;"><strong>Pertemuan ${l.pertemuanKe} (${l.hariTanggal})</strong> - Penilai: ${l.penilai}<br><span style="font-style:italic; display:inline-block; margin-top:5px;">"${l.catatan}"</span></div>`; }); } document.getElementById('printContentBody').innerHTML = html; document.getElementById('printArea').classList.remove('d-none'); window.print(); setTimeout(() => document.getElementById('printArea').classList.add('d-none'), 500); }
 
     function loadProduksiTabs() { let kelas = document.getElementById('prodKelasSelect').value; if(currentUser.role === 'admin') { loadTablePenugasanJabatan(kelas); } else { document.getElementById('prodKelasSelect').value = currentUser.kelas; kelas = currentUser.kelas; document.getElementById('prodKelasSelect').disabled = true; let tab = new bootstrap.Tab(document.getElementById('navPenilaianTabBtn')); tab.show(); } loadTablePenilaianLatihan(); }
-    
     const daftar23Jabatan = ["Pimpinan Produksi", "Wakil Pimpinan Produksi", "Sekretaris", "Bendahara", "Sutradara", "Asisten Sutradara", "Koordinator Panggung", "Tim Properti", "Tim Dekorasi", "Tim Tata Rias", "Tim Kostum", "Tim Musik", "Tim Sound", "Tim Lighting", "Tim Dokumentasi", "Tim Publikasi", "Tim Tiket & Penerima Tamu", "Tim Konsumsi", "Tim Kebersihan & Keamanan", "Pemeran", "Penulis Naskah", "Aktor", "Aktris"];
     
     function loadTablePenugasanJabatan(kelas) { document.getElementById('tablePenugasanBody').innerHTML = `<tr><td colspan="6" class="text-center py-3 text-dark">Memuat data struktur tim...</td></tr>`; fetch(`${SCRIPT_URL}?action=getTimProduksi&kelas=${kelas}`).then(r => r.json()).then(data => { if(data.success) { currentTimProduksi = data.data; let siswaKelas = allStudentsData.filter(s => s.kelas === kelas); let html = ''; siswaKelas.forEach((s, i) => { let p = currentTimProduksi.find(x => x.nisn === s.username) || { jabatan: '', statusHierarki: 'Anggota', jobdesk: '' }; let jabOpts = `<option value="">-- Pilih Jabatan --</option>` + daftar23Jabatan.map(j => `<option value="${j}" ${p.jabatan===j?'selected':''}>${j}</option>`).join(''); html += `<tr><td class="text-center text-dark">${i+1}</td><td class="fw-bold text-dark">${s.nama} <br><small class="text-muted fw-normal">${s.username}</small></td><td><select class="form-select form-select-sm j-jabatan" data-nisn="${s.username}">${jabOpts}</select></td><td><select class="form-select form-select-sm j-hierarki" data-nisn="${s.username}"><option value="Anggota" ${p.statusHierarki==='Anggota'?'selected':''}>Anggota (Biasa)</option><option value="Koordinator" ${p.statusHierarki==='Koordinator'?'selected':''}>Koordinator Divisi</option><option value="Pimprod" ${p.statusHierarki==='Pimprod'?'selected':''}>Pimpinan Produksi</option></select></td><td><input type="text" class="form-control form-control-sm j-jobdesk" data-nisn="${s.username}" value="${p.jobdesk}" placeholder="Detail tugas..."></td><td class="text-center"><button class="btn btn-sm btn-primary py-0" onclick="simpanSatuPenugasan('${s.username}')"><i class="bi bi-check2"></i></button></td></tr>`; }); document.getElementById('tablePenugasanBody').innerHTML = html; } }); }
     function simpanSatuPenugasan(nisn) { let btn = event.currentTarget; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; let kelas = document.getElementById('prodKelasSelect').value; let jabatan = document.querySelector(`.j-jabatan[data-nisn="${nisn}"]`).value; let hierarki = document.querySelector(`.j-hierarki[data-nisn="${nisn}"]`).value; let jobdesk = document.querySelector(`.j-jobdesk[data-nisn="${nisn}"]`).value; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'savePenugasan', userRole: 'admin', kelas: kelas, nisn: nisn, jabatan: jabatan, statusHierarki: hierarki, jobdesk: jobdesk }) }).then(() => { btn.innerHTML = '<i class="bi bi-check-all"></i>'; btn.classList.replace('btn-primary','btn-success'); setTimeout(()=>{btn.classList.replace('btn-success','btn-primary'); btn.innerHTML='<i class="bi bi-check2"></i>'}, 2000); }); }
     function loadTablePenilaianLatihan() { let kelas = document.getElementById('prodKelasSelect').value; let pertemuan = document.getElementById('prodPertemuanSelect').value; document.getElementById('tablePenilaianBody').innerHTML = `<tr><td colspan="7" class="text-center py-3 text-dark">Memuat form penilaian pertemuan ${pertemuan}...</td></tr>`; fetch(`${SCRIPT_URL}?action=getTimProduksi&kelas=${kelas}`).then(r => r.json()).then(timData => { currentTimProduksi = timData.data; fetch(`${SCRIPT_URL}?action=getPenilaianPertemuan&kelas=${kelas}&pertemuanKe=${pertemuan}`).then(r => r.json()).then(nilaiData => { let siswaKelas = allStudentsData.filter(s => s.kelas === kelas); let html = ''; let canEditGuru = currentUser.role === 'admin'; let canEditPimprod = canEditGuru || currentUser.hierarki === 'Pimprod'; let canEditKoord = canEditPimprod || currentUser.hierarki === 'Koordinator'; siswaKelas.forEach((s, i) => { let tim = currentTimProduksi.find(x => x.nisn === s.username) || { jabatan: 'Belum Ditugaskan' }; let n = nilaiData.data.find(x => x.nisn === s.username) || { skorKoord:'', skorPimprod:'', skorGuru:'', catatan:'' }; html += `<tr><td class="text-center text-dark">${i+1}</td><td class="fw-bold text-start text-dark"><small class="d-none s-nisn">${s.username}</small>${s.nama}</td><td><span class="badge bg-secondary text-white">${tim.jabatan}</span></td><td><input type="number" class="form-control form-control-sm text-center n-koord" min="0" max="100" value="${n.skorKoord}" ${!canEditKoord?'disabled':''}></td><td><input type="number" class="form-control form-control-sm text-center n-pimprod" min="0" max="100" value="${n.skorPimprod}" ${!canEditPimprod?'disabled':''}></td><td><input type="number" class="form-control form-control-sm text-center n-guru" min="0" max="100" value="${n.skorGuru}" ${!canEditGuru?'disabled':''}></td><td><input type="text" class="form-control form-control-sm n-catatan text-dark" value="${n.catatan}" placeholder="Catatan perilaku..." ${!canEditKoord?'disabled':''}></td></tr>`; }); document.getElementById('tablePenilaianBody').innerHTML = html; }); }); }
     function simpanSemuaPenilaian() { let btn = event.currentTarget; let oldHtml = btn.innerHTML; btn.innerHTML = "Menyimpan..."; btn.disabled = true; let kelas = document.getElementById('prodKelasSelect').value; let pertemuan = document.getElementById('prodPertemuanSelect').value; let tanggal = document.getElementById('prodTanggalInput').value; let penilaiName = currentUser.nama + (currentUser.hierarki ? ` (${currentUser.hierarki})` : ' (Admin)'); let payload = []; let rows = document.getElementById('tablePenilaianBody').querySelectorAll('tr'); rows.forEach(tr => { let nisnEl = tr.querySelector('.s-nisn'); if(!nisnEl) return; payload.push({ nisn: nisnEl.innerText, skorKoord: tr.querySelector('.n-koord').value, skorPimprod: tr.querySelector('.n-pimprod').value, skorGuru: tr.querySelector('.n-guru').value, catatan: tr.querySelector('.n-catatan').value, penilai: penilaiName }); }); fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'savePenilaianBulk', userRole: currentUser.role, kelas: kelas, pertemuanKe: pertemuan, tanggal: tanggal, penilaianData: payload }) }).then(() => { btn.innerHTML = oldHtml; btn.disabled = false; alert(`Penilaian Pertemuan ${pertemuan} berhasil disimpan!`); }); }
-    
     function exportPenugasanToExcel() { let kelas = document.getElementById('prodKelasSelect').value; if(currentTimProduksi.length === 0) return alert("Silakan tunggu data dimuat terlebih dahulu."); let wsData = [ [`DATA PENUGASAN JABATAN PRODUKSI TEATER - KELAS ${kelas}`], [], ["NO", "NISN", "NAMA SISWA", "JABATAN", "STATUS HIERARKI", "JOBDESK TAMBAHAN"] ]; let siswaKelas = allStudentsData.filter(s => s.kelas === kelas).sort((a,b)=>a.nama.localeCompare(b.nama)); siswaKelas.forEach((s, i) => { let p = currentTimProduksi.find(x => x.nisn === s.username) || { jabatan: '-', statusHierarki: 'Anggota', jobdesk: '-' }; wsData.push([i+1, s.username, s.nama, p.jabatan, p.statusHierarki, p.jobdesk]); }); let ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{wch:5}, {wch:15}, {wch:35}, {wch:25}, {wch:20}, {wch:40}]; let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `Penugasan_${kelas}`); XLSX.writeFile(wb, `Data_Penugasan_Teater_${kelas}.xlsx`); }
     function exportPenilaianToExcel() { let kelas = document.getElementById('prodKelasSelect').value; let pertemuan = document.getElementById('prodPertemuanSelect').value; let tanggal = document.getElementById('prodTanggalInput').value; let wsData = [ [`DATA PENILAIAN LATIHAN PRODUKSI TEATER - KELAS ${kelas}`], [`PERTEMUAN KE: ${pertemuan} | TANGGAL: ${tanggal}`], [], ["NO", "NISN", "NAMA SISWA", "JABATAN", "SKOR KOORDINATOR", "SKOR PIMPROD", "SKOR GURU", "CATATAN"] ]; let rows = document.getElementById('tablePenilaianBody').querySelectorAll('tr'); let i = 1; rows.forEach(tr => { let nisnEl = tr.querySelector('.s-nisn'); if(!nisnEl) return; let nama = tr.querySelector('td:nth-child(2)').innerText.replace(nisnEl.innerText, '').trim(); let jabatan = tr.querySelector('td:nth-child(3)').innerText.trim(); wsData.push([i, nisnEl.innerText, nama, jabatan, tr.querySelector('.n-koord').value, tr.querySelector('.n-pimprod').value, tr.querySelector('.n-guru').value, tr.querySelector('.n-catatan').value]); i++; }); let ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{wch:5}, {wch:15}, {wch:35}, {wch:25}, {wch:18}, {wch:18}, {wch:15}, {wch:40}]; let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `Nilai_P${pertemuan}`); XLSX.writeFile(wb, `Data_Penilaian_Teater_${kelas}_Pertemuan_${pertemuan}.xlsx`); }
 
@@ -676,27 +635,16 @@
                 if (type === 'berita') {
                     let bIdx = rawHomeData.berita.findIndex(x => x.id === id);
                     if(bIdx !== -1) { rawHomeData.berita[bIdx].likedBy = data.likedBy; rawHomeData.berita[bIdx].likes = data.likes; }
-                    if (!elBtn) { 
-                        document.getElementById('btnLoveDetail').className = `btn-love ${isLiked ? 'active' : ''}`; 
-                        document.getElementById('btnLoveDetail').innerHTML = `<i class="bi ${isLiked ? 'bi-heart-fill text-danger' : 'bi-heart'}"></i>`; 
-                        document.getElementById('loveCountDetail').innerText = `${data.likes} Menyukai`; 
-                    }
+                    if (!elBtn) { document.getElementById('btnLoveDetail').className = `btn-love ${isLiked ? 'active' : ''}`; document.getElementById('btnLoveDetail').innerHTML = `<i class="bi ${isLiked ? 'bi-heart-fill text-danger' : 'bi-heart'}"></i>`; document.getElementById('loveCountDetail').innerText = `${data.likes} Menyukai`; }
                     renderBeritaKoran(rawHomeData.berita);
                 } else if (type === 'video') {
                     let vIdx = rawHomeData.video.findIndex(x => x.id === id);
                     if(vIdx !== -1) { let m = parseJSONSafe(rawHomeData.video[vIdx].deskripsi)||{}; m.likedBy = data.likedBy; rawHomeData.video[vIdx].deskripsi = JSON.stringify(m); }
-                    if(elBtn) {
-                        elBtn.classList.toggle('active', isLiked);
-                        elBtn.innerHTML = `<i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i> ${data.likes}`;
-                    }
+                    if(elBtn) { elBtn.classList.toggle('active', isLiked); elBtn.innerHTML = `<i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i> ${data.likes}`; }
                 } else if (type === 'galeri') {
                     let gIdx = rawHomeData.galeri.findIndex(x => x.id === id);
                     if(gIdx !== -1) { let cM = parseJSONSafe(rawHomeData.galeri[gIdx].caption)||{}; cM.likedBy = data.likedBy; rawHomeData.galeri[gIdx].caption = JSON.stringify(cM); }
-                    if(elBtn) {
-                        elBtn.classList.toggle('active', isLiked);
-                        elBtn.querySelector('i').className = `bi ${isLiked ? 'bi-heart-fill text-danger' : 'bi-heart'}`;
-                        if(elCount) elCount.innerText = data.likes;
-                    }
+                    if(elBtn) { elBtn.classList.toggle('active', isLiked); elBtn.querySelector('i').className = `bi ${isLiked ? 'bi-heart-fill text-danger' : 'bi-heart'}`; if(elCount) elCount.innerText = data.likes; }
                 }
             }
         });
@@ -705,9 +653,9 @@
     // --- BERITA ---
     function renderBeritaKoran(beritaList) { const container = document.getElementById('beritaFeedContainer'); if (!beritaList || beritaList.length === 0) return container.innerHTML = `<div class="card border-0 p-4 text-center text-muted">Belum ada karya sastra/liputan.</div>`; let isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.aksesSpesial === 'Penulis Naskah'); let myId = getMyId(); container.innerHTML = beritaList.map((b, idx) => { let likedBy = b.likedBy || []; let isMyLike = likedBy.includes(myId); let likesCount = b.likes || likedBy.length || 0; let adminBtns = isAdmin ? `<div class="mt-3 pt-2 border-top"><button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editBeritaFull('${b.id}')"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-sm btn-outline-danger py-0" onclick="hapusBeritaFull('${b.id}')"><i class="bi bi-trash"></i> Hapus</button></div>` : ''; let heroClass = idx === 0 ? 'news-hero-card mb-4 p-4' : 'shadow-sm mb-3 p-3'; let heroTitle = idx === 0 ? 'fs-2' : 'fs-5'; let imgMatch = b.isi.match(/<img[^>]+src=["']([^"']+)["']/i); let thumbUrl = imgMatch ? imgMatch[1] : null; let thumbHtml = thumbUrl ? `<img src="${thumbUrl}" class="img-fluid rounded mb-3 shadow-sm" style="max-height: ${idx === 0 ? '350px' : '200px'}; width: 100%; object-fit: cover; cursor: pointer;" onclick="bacaBeritaFull('${b.id}')">` : ''; let excerpt = idx === 0 ? `<div class="news-body-content text-secondary mb-3">${b.isi.replace(/<[^>]*>?/gm, '').substring(0, 200)}...</div>` : ''; return `<div class="card border-0 ${heroClass}"><div class="card-body p-0"><div class="d-flex justify-content-between align-items-center mb-2"><span class="badge bg-danger badge-kategori">${b.kategori}</span><small class="text-muted"><i class="bi bi-eye-fill text-primary-theme"></i> ${b.views} Pembaca</small></div><h2 class="fw-bold text-dark-theme mb-3 ${heroTitle}" style="cursor:pointer;" onclick="bacaBeritaFull('${b.id}')">${b.judul}</h2>${thumbHtml}${excerpt}<div class="d-flex justify-content-between align-items-center pt-3 border-top"><small class="text-muted"><i class="bi bi-clock me-1"></i>${b.tanggal} | Oleh: <strong>${b.author || 'Admin'}</strong></small><div class="d-flex align-items-center gap-3"><span class="btn-love ${isMyLike ? 'active' : ''}" onclick="toggleServerLikeUniversal('${b.id}', 'berita', this)"><i class="bi ${isMyLike ? 'bi-heart-fill text-danger' : 'bi-heart'}"></i> <small class="text-dark fw-bold" id="lc_${b.id}">${likesCount}</small></span><button class="btn ${idx === 0 ? 'btn-primary rounded-pill px-3' : 'btn-outline-primary py-0'} btn-sm fw-bold" onclick="bacaBeritaFull('${b.id}')">Baca</button></div></div>${adminBtns}</div></div>`; }).join(''); }
     function shareArtikel() { let title = document.getElementById('readJudul').innerText; if (navigator.share) { navigator.share({ title: title, text: 'Baca karya ini di Panggung Kita!', url: window.location.href }); } else { navigator.clipboard.writeText(window.location.href); alert("Link berhasil disalin ke clipboard!"); } }
-    function renderBeritaTerpopuler(list) { document.getElementById('popularNewsContainer').innerHTML = [...list].sort((a,b) => b.views - a.views).slice(0,5).map(b => `<div class="border-bottom pb-2" style="cursor:pointer" onclick="bacaBeritaFull('${b.id}')"><h6 class="fw-bold text-dark-theme mb-1" style="font-size:14px;">${b.judul}</h6><div class="d-flex justify-content-between text-muted" style="font-size:11px"><span>${b.tanggal.split(' ')[0]}</span><span class="text-danger fw-bold"><i class="bi bi-fire"></i> ${b.views} views</span></div></div>`).join(''); }
-    function renderArsipBulanBerita(list) { let arch = {}; list.forEach(b => { let p = b.tanggal.split(' '); if(p.length>=3) { let m = p[1]+" "+p[2]; if(!arch[m]) arch[m]=[]; arch[m].push(b); } }); let h = '<ul>'; for(let m in arch) h += `<li><i class="bi bi-caret-right-fill text-primary-theme"></i> <a href="#" onclick="filterBeritaBulan('${m}');return false;" class="text-dark-theme"><strong>${m}</strong> (${arch[m].length})</a></li>`; document.getElementById('blogArchiveContainer').innerHTML = h+'</ul>'; }
-    function filterBeritaBulan(m) { renderBeritaKoran(rawHomeData.berita.filter(b => b.tanggal.includes(m))); }
+    function renderBeritaTerpopuler(list) { if(!list) list=[]; document.getElementById('popularNewsContainer').innerHTML = [...list].sort((a,b) => b.views - a.views).slice(0,5).map(b => `<div class="border-bottom pb-2" style="cursor:pointer" onclick="bacaBeritaFull('${b.id}')"><h6 class="fw-bold text-dark-theme mb-1" style="font-size:14px;">${b.judul}</h6><div class="d-flex justify-content-between text-muted" style="font-size:11px"><span>${b.tanggal.split(' ')[0]}</span><span class="text-danger fw-bold"><i class="bi bi-fire"></i> ${b.views} views</span></div></div>`).join(''); }
+    function renderArsipBulanBerita(list) { if(!list) list=[]; let arch = {}; list.forEach(b => { let p = b.tanggal.split(' '); if(p.length>=3) { let m = p[1]+" "+p[2]; if(!arch[m]) arch[m]=[]; arch[m].push(b); } }); let h = '<ul>'; for(let m in arch) h += `<li><i class="bi bi-caret-right-fill text-primary-theme"></i> <a href="#" onclick="filterBeritaBulan('${m}');return false;" class="text-dark-theme"><strong>${m}</strong> (${arch[m].length})</a></li>`; document.getElementById('blogArchiveContainer').innerHTML = h+'</ul>'; }
+    function filterBeritaBulan(m) { renderBeritaKoran((rawHomeData.berita||[]).filter(b => b.tanggal.includes(m))); }
     function bacaBeritaFull(id) { let b = rawHomeData.berita.find(x => x.id.toString() === id.toString()); if(!b) return; activeArticleIdForModal = id; document.getElementById('readJudul').innerText = b.judul; document.getElementById('readKategori').innerText = b.kategori; document.getElementById('readTanggal').innerText = b.tanggal; document.getElementById('readAuthor').innerText = b.author; document.getElementById('readViews').innerText = parseInt(b.views) + 1; document.getElementById('readIsi').innerHTML = b.isi; let myId = getMyId(); let isMyLike = b.likedBy && b.likedBy.includes(myId); document.getElementById('btnLoveDetail').className = `btn-love ${isMyLike ? 'active' : ''}`; document.getElementById('btnLoveDetail').innerHTML = `<i class="bi ${isMyLike ? 'bi-heart-fill text-danger' : 'bi-heart'}"></i>`; document.getElementById('loveCountDetail').innerText = `${b.likes || (b.likedBy?b.likedBy.length:0) || 0} Menyukai`; mBaca.show(); fetch(`${SCRIPT_URL}?action=incrementViews&id=${id}&type=berita`); }
     function execBlogger(c, v=null){ document.execCommand(c,false,v); } function tambahLinkBlogger() { let url = prompt("Masukkan Link:"); if(url) document.execCommand('createLink',false,url); } function promptVideoYoutubeBlogger() { let url=prompt("Link YouTube:"); if(url){ let e=url; if(url.includes('watch?v=')) e=url.replace('watch?v=','embed/'); else if(url.includes('youtu.be/')) e=url.replace('youtu.be/','www.youtube.com/embed/'); document.execCommand('insertHTML',false,`<div class="video-responsive my-3"><iframe src="${e}" frameborder="0" scrolling="no" allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe></div>`); } } function uploadGambarOfflineBlogger(input){ if(input.files&&input.files[0]){ let r=new FileReader(); r.onload=function(e){ document.execCommand('insertHTML',false,`<img src="${e.target.result}" style="width:100%;max-width:100%;border-radius:8px;margin:10px 0;cursor:pointer;">`); }; r.readAsDataURL(input.files[0]); } } function alignImageEditor(p) { if(selectedImageInEditor) { selectedImageInEditor.style.float = p==='left'?'left':(p==='right'?'right':'none'); selectedImageInEditor.style.margin = p==='none'?'10px auto':(p==='left'?'0 15px 15px 0':'0 0 15px 15px'); selectedImageInEditor.style.display='block'; } } function resizeSelectedImage(s) { if(selectedImageInEditor) { selectedImageInEditor.style.width=s; selectedImageInEditor.style.maxWidth='100%'; } } function previewArtikel() { document.getElementById('previewJudul').innerText=document.getElementById('beritaJudul').value; document.getElementById('previewKategori').innerText=document.getElementById('beritaKategori').value; document.getElementById('previewPenulis').innerText=document.getElementById('beritaPenulisCustom').value||'Admin'; document.getElementById('previewKonten').innerHTML=document.getElementById('beritaEditor').innerHTML; mPreview.show(); }
     function bukaModalTulisBerita() { document.getElementById('beritaEditId').value=''; document.getElementById('beritaJudul').value=''; document.getElementById('beritaPenulisCustom').value=currentUser?currentUser.nama:'Admin'; document.getElementById('beritaEditor').innerHTML='<p>Tulis di sini...</p>'; mBerita.show(); } function editBeritaFull(id) { let b=rawHomeData.berita.find(x=>x.id.toString()===id.toString()); if(!b)return; document.getElementById('beritaEditId').value=b.id; document.getElementById('beritaJudul').value=b.judul; document.getElementById('beritaPenulisCustom').value=b.author; document.getElementById('beritaKategori').value=b.kategori; document.getElementById('beritaEditor').innerHTML=b.isi; mBerita.show(); } function simpanBerita() { let id=document.getElementById('beritaEditId').value; let j=document.getElementById('beritaJudul').value; let i=document.getElementById('beritaEditor').innerHTML; let a=document.getElementById('beritaPenulisCustom').value; if(!j||!i) return alert("Judul & Isi wajib!"); mBerita.hide(); fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:(id?'editBerita':'addBerita'),id:id,userRole:currentUser?currentUser.role:'tamu', userJabatan: currentUser?currentUser.aksesSpesial||'':'', judul:j,kategori:document.getElementById('beritaKategori').value,isi:i,author:a})}).then(()=>loadHomeContent()); } function hapusBeritaFull(id) { if(confirm("Hapus berita?")) fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteBerita',userRole:currentUser.role, userJabatan: currentUser.aksesSpesial||'', id:id})}).then(()=>loadHomeContent()); }
@@ -731,17 +679,14 @@
             let embedSrc = v.urlEmbed; if(embedSrc.includes('drive.google.com/file/d/') && !embedSrc.includes('/preview')) embedSrc = embedSrc.replace(/\/view.*/, '/preview'); 
             let admBtn = isAdmin ? `<button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editVideoModal('${v.id}')">Edit</button><button class="btn btn-sm btn-outline-danger py-0" onclick="hapusVideoModal('${v.id}')">Hapus</button>` : ''; 
             
-            let likedBy = v.meta.likedBy || [];
-            let isLiked = likedBy.includes(myId);
-            let likesCount = likedBy.length;
+            let likedBy = v.meta.likedBy || []; let isLiked = likedBy.includes(myId); let likesCount = likedBy.length;
             let rankBadge = sort === 'populer' && idx < 3 ? `<span class="badge bg-danger position-absolute top-0 start-0 m-2"><i class="bi bi-fire"></i> Top ${idx+1}</span>` : '';
 
-            // PEMBARUAN SCRIPT VIDEO IFRAME DISINI
-            return `<div class="col-md-6 mb-4"><div class="card border-0 shadow-sm h-100 position-relative">${rankBadge}<div class="video-responsive"><div onclick="rekamViewVideo('${v.id}', this)" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; cursor:pointer; background:transparent;"></div><iframe src="${embedSrc}" frameborder="0" scrolling="no" allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe></div><div class="card-body"><h5 class="fw-bold mb-1 text-dark-theme">${v.judul}</h5><div class="d-flex justify-content-between text-muted mb-2 small"><span><i class="bi bi-clock"></i> ${new Date(v.meta.t).toLocaleDateString('id-ID')}</span><span><i class="bi bi-play-circle-fill text-danger"></i> <span id="vView_${v.id}">${v.meta.v||0}</span> Tayang</span></div><p class="small text-secondary mb-3">${v.meta.d}</p><div class="d-flex justify-content-between align-items-center pt-2 border-top"><button class="btn btn-sm btn-dark rounded-pill fw-bold px-3" onclick="bukaKomentarGlobal('${v.id}', '${v.judul.replace(/'/g,"")}')"><i class="bi bi-chat-dots me-1"></i> Diskusi</button><div class="d-flex align-items-center gap-2"><span class="btn-thumb ${isLiked ? 'active':''}" onclick="toggleServerLikeUniversal('${v.id}', 'video', this)"><i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i> ${likesCount}</span>${admBtn}</div></div></div></div></div>`; 
+            return `<div class="col-md-6 mb-4"><div class="card border-0 shadow-sm h-100 position-relative">${rankBadge}<div class="video-responsive"><div onclick="rekamViewVideo('${v.id}', this)" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; cursor:pointer; background:transparent;"></div><iframe src="${embedSrc}" width="100%" height="100%" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none; max-width:100%; overflow:hidden;" frameborder="0" scrolling="no" allow="autoplay; fullscreen" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe></div><div class="card-body"><h5 class="fw-bold mb-1 text-dark-theme">${v.judul}</h5><div class="d-flex justify-content-between text-muted mb-2 small"><span><i class="bi bi-clock"></i> ${new Date(v.meta.t).toLocaleDateString('id-ID')}</span><span><i class="bi bi-play-circle-fill text-danger"></i> <span id="vView_${v.id}">${v.meta.v||0}</span> Tayang</span></div><p class="small text-secondary mb-3">${v.meta.d}</p><div class="d-flex justify-content-between align-items-center pt-2 border-top"><button class="btn btn-sm btn-dark rounded-pill fw-bold px-3" onclick="bukaKomentarGlobal('${v.id}', '${v.judul.replace(/'/g,"")}')"><i class="bi bi-chat-dots me-1"></i> Diskusi</button><div class="d-flex align-items-center gap-2"><span class="btn-thumb ${isLiked ? 'active':''}" onclick="toggleServerLikeUniversal('${v.id}', 'video', this)"><i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i> ${likesCount}</span>${admBtn}</div></div></div></div></div>`; 
         }).join(''); 
     }
     function rekamViewVideo(id, overlayEl) { if(overlayEl) overlayEl.style.display = 'none'; let key = 'viewed_vid_' + id; if(!localStorage.getItem(key)) { localStorage.setItem(key, '1'); let span = document.getElementById('vView_'+id); if(span) span.innerText = parseInt(span.innerText) + 1; fetch(`${SCRIPT_URL}?action=incrementViews&id=${id}&type=video`); } }
-    function filterVideoBulan(m) { renderVideoFeed(rawHomeData.video.filter(v => { let meta=parseJSONSafe(v.deskripsi)||{}; return new Date(meta.t||new Date()).toLocaleString('id-ID',{month:'long',year:'numeric'})===m; }), 'populer'); }
+    function filterVideoBulan(m) { renderVideoFeed((rawHomeData.video||[]).filter(v => { let meta=parseJSONSafe(v.deskripsi)||{}; return new Date(meta.t||new Date()).toLocaleString('id-ID',{month:'long',year:'numeric'})===m; }), 'populer'); }
     function bukaModalVideo(){ document.getElementById('videoEditId').value=''; document.getElementById('videoYoutubeUrl').value=''; document.getElementById('videoJudul').value=''; document.getElementById('videoDeskripsiEditor').value=''; mVideo.show(); } function editVideoModal(id){ let v=rawHomeData.video.find(x=>x.id.toString()===id.toString()); if(!v)return; let m=parseJSONSafe(v.deskripsi)||{d:v.deskripsi}; document.getElementById('videoEditId').value=v.id; document.getElementById('videoYoutubeUrl').value=v.urlEmbed; document.getElementById('videoJudul').value=v.judul; document.getElementById('videoDeskripsiEditor').value=m.d; mVideo.show(); } function simpanVideo(){ let id=document.getElementById('videoEditId').value; let u=document.getElementById('videoYoutubeUrl').value; let j=document.getElementById('videoJudul').value; let d=document.getElementById('videoDeskripsiEditor').value; if(!u||!j) return alert("URL dan Judul wajib!"); let meta={d:d, t:new Date().toISOString(), v:0, likedBy:[]}; if(id){ let ex=rawHomeData.video.find(x=>x.id.toString()===id.toString()); if(ex){ let exM=parseJSONSafe(ex.deskripsi); if(exM){ meta.t=exM.t; meta.v=exM.v; meta.likedBy = exM.likedBy||[]; } } } mVideo.hide(); fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:(id?'editVideo':'addVideo'),id:id,userRole:currentUser?currentUser.role:'tamu', userJabatan: currentUser?currentUser.aksesSpesial||'':'', youtubeUrl:u,judul:j,deskripsi:JSON.stringify(meta)})}).then(()=>loadHomeContent()); } function hapusVideoModal(id){ if(confirm("Hapus video?")) fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteVideo',userRole:currentUser.role, userJabatan: currentUser.aksesSpesial||'', id:id})}).then(()=>loadHomeContent()); }
 
     // --- GALERI FOTO ---
@@ -776,34 +721,11 @@
         }).join(''); 
     }
 
-    // PEMBARUAN ZOOM (LIGHTBOX SLIDER)
-    function bukaZoomSlider(galleryId, index) {
-        let g = rawHomeData.galeri.find(x => x.id === galleryId);
-        if(!g) return;
-        let images = (g.urlDrive || "").split('|||').map(s => s.trim()).filter(s=>s.length>0);
-        let capMeta = parseJSONSafe(g.caption) || { c: g.caption };
-        lbData = images.map(img => ({src: parseDriveImageUrl(img), cap: capMeta.c}));
-        lbCurrent = index || 0;
-        showLightboxImg();
-        mZoom.show();
-    }
-    function showLightboxImg() {
-        if(lbData.length === 0) return;
-        document.getElementById('lightboxImg').src = lbData[lbCurrent].src;
-        document.getElementById('lightboxCaption').innerText = lbData[lbCurrent].cap + (lbData.length > 1 ? ` (${lbCurrent+1} / ${lbData.length})` : '');
-        document.getElementById('lbPrev').style.display = lbData.length > 1 ? 'block' : 'none';
-        document.getElementById('lbNext').style.display = lbData.length > 1 ? 'block' : 'none';
-    }
-    function lbNav(dir) {
-        if(lbData.length <= 1) return;
-        lbCurrent += dir;
-        if(lbCurrent < 0) lbCurrent = lbData.length - 1;
-        if(lbCurrent >= lbData.length) lbCurrent = 0;
-        showLightboxImg();
-    }
-
-    function filterGaleriBulan(m) { renderGaleriFeed(rawHomeData.galeri.filter(g => { let meta=parseJSONSafe(g.caption)||{}; return new Date(meta.t||new Date()).toLocaleString('id-ID',{month:'long',year:'numeric'})===m; })); } 
-    function generateArsipSidebar(list, cId, func) { let arch = {}; list.forEach(i => { let m=parseJSONSafe(i.caption||i.deskripsi); let dt = m && m.t ? new Date(m.t) : new Date(); if(isNaN(dt.getTime())) dt = new Date(); let my=dt.toLocaleString('id-ID',{month:'long',year:'numeric'}); if(!arch[my]) arch[my]=[]; arch[my].push(i); }); let h='<ul>'; for(let m in arch) h+=`<li><i class="bi bi-caret-right-fill text-primary-theme"></i> <a href="#" onclick="${func.name}('${m}');return false;" class="text-dark-theme"><strong>${m}</strong> (${arch[m].length})</a></li>`; document.getElementById(cId).innerHTML=h+'</ul>'; }
+    function bukaZoomSlider(galleryId, index) { let g = rawHomeData.galeri.find(x => x.id === galleryId); if(!g) return; let images = (g.urlDrive || "").split('|||').map(s => s.trim()).filter(s=>s.length>0); let capMeta = parseJSONSafe(g.caption) || { c: g.caption }; lbData = images.map(img => ({src: parseDriveImageUrl(img), cap: capMeta.c})); lbCurrent = index || 0; showLightboxImg(); mZoom.show(); }
+    function showLightboxImg() { if(lbData.length === 0) return; document.getElementById('lightboxImg').src = lbData[lbCurrent].src; document.getElementById('lightboxCaption').innerText = lbData[lbCurrent].cap + (lbData.length > 1 ? ` (${lbCurrent+1} / ${lbData.length})` : ''); document.getElementById('lbPrev').style.display = lbData.length > 1 ? 'block' : 'none'; document.getElementById('lbNext').style.display = lbData.length > 1 ? 'block' : 'none'; }
+    function lbNav(dir) { if(lbData.length <= 1) return; lbCurrent += dir; if(lbCurrent < 0) lbCurrent = lbData.length - 1; if(lbCurrent >= lbData.length) lbCurrent = 0; showLightboxImg(); }
+    function filterGaleriBulan(m) { renderGaleriFeed((rawHomeData.galeri||[]).filter(g => { let meta=parseJSONSafe(g.caption)||{}; return new Date(meta.t||new Date()).toLocaleString('id-ID',{month:'long',year:'numeric'})===m; })); } 
+    function generateArsipSidebar(list, cId, func) { if(!list) list=[]; let arch = {}; list.forEach(i => { let m=parseJSONSafe(i.caption||i.deskripsi); let dt = m && m.t ? new Date(m.t) : new Date(); if(isNaN(dt.getTime())) dt = new Date(); let my=dt.toLocaleString('id-ID',{month:'long',year:'numeric'}); if(!arch[my]) arch[my]=[]; arch[my].push(i); }); let h='<ul>'; for(let m in arch) h+=`<li><i class="bi bi-caret-right-fill text-primary-theme"></i> <a href="#" onclick="${func.name}('${m}');return false;" class="text-dark-theme"><strong>${m}</strong> (${arch[m].length})</a></li>`; document.getElementById(cId).innerHTML=h+'</ul>'; }
     function bukaModalFoto() { document.getElementById('fotoEditId').value=''; multiFotoBase64Array=[]; document.getElementById('previewFotoMulti').innerHTML=''; document.getElementById('fotoDriveUrlCustom').value=''; document.getElementById('fotoCaption').value=''; document.getElementById('fotoInputMultiple').value=''; mFoto.show(); }
     function simpanFoto() { let id = document.getElementById('fotoEditId').value; let c = document.getElementById('fotoCaption').value; if(!c) return alert("Isi caption!"); let cM = { c: c, t: new Date().toISOString(), likedBy: [] }; let btn = document.getElementById('btnUploadFotoSave'); let oT = btn.innerHTML; let act = document.querySelector('#modalFoto .nav-link.active').getAttribute('data-bs-target'); if (act === '#pane-perangkat') { if (multiFotoBase64Array.length === 0) return alert("Pilih minimal 1 foto!"); btn.innerHTML = 'Mengunggah...'; btn.disabled = true; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'uploadToDrive', files: multiFotoBase64Array.map(b => ({base64: b})) }) }).then(r=>r.json()).then(d => { if (d.success) spF(id, d.urls.join('|||'), cM, btn, oT); else { alert("Gagal unggah: " + d.message); btn.innerHTML=oT; btn.disabled=false; } }); } else { let url = document.getElementById('fotoDriveUrlCustom').value.trim(); if(!url) return alert("Isi URL Drive!"); spF(id, url, cM, btn, oT); } }
     function spF(id, url, cm, btn, ot) { fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:(id?'editGaleri':'addGaleri'),id:id,userRole:currentUser?currentUser.role:'tamu', userJabatan:currentUser?currentUser.aksesSpesial||'':'', urlDrive:url,caption:JSON.stringify(cm)})}).then(()=>{ mFoto.hide(); btn.innerHTML=ot; btn.disabled=false; loadHomeContent(); }); }
@@ -822,7 +744,7 @@
     function loadRekapanNilai() { let kelas = document.getElementById('rekapKelasSelect').value; document.getElementById('tableRekapBody').innerHTML = '<tr><td colspan="7" class="text-center py-4">Menghitung kalkulasi nilai akhir... <span class="spinner-border spinner-border-sm"></span></td></tr>'; fetch(`${SCRIPT_URL}?action=getRekapanAkhir&kelas=${kelas}`).then(r => r.json()).then(data => { if(data.success) { if (data.data.length === 0) { document.getElementById('tableRekapBody').innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data nilai/siswa untuk kelas ini.</td></tr>'; return; } let html = data.data.map((r, i) => { let badgeColor = r.keaktifan === 'Sangat Aktif' ? 'bg-success' : (r.keaktifan === 'Aktif' ? 'bg-primary' : 'bg-danger'); return `<tr><td class="text-center text-dark">${i+1}</td><td class="fw-bold text-dark">${r.nama}<br><small class="text-muted fw-normal">${r.nisn}</small></td><td><span class="badge bg-secondary">${r.jabatan}</span></td><td class="text-center fw-bold text-info">${r.rataLatihan}</td><td class="text-center fw-bold text-success">${r.rataKonsul}</td><td class="text-center fw-bold fs-5 text-dark" style="background:#f4ece6;">${r.nilaiAkhir}</td><td class="text-center"><span class="badge ${badgeColor} px-2 py-1">${r.keaktifan}</span></td></tr>`; }).join(''); document.getElementById('tableRekapBody').innerHTML = html; } }); }
     function exportRekapToExcel() { let kelas = document.getElementById('rekapKelasSelect').value; let rows = document.querySelectorAll('#tableRekapBody tr'); if(rows.length === 0 || rows[0].innerText.includes('Menghitung') || rows[0].innerText.includes('Belum ada data')) return alert('Data belum siap untuk diexport.'); let wsData = [ [`REKAP NILAI AKHIR PRAKTIK TEATER - KELAS ${kelas}`], [], ["NO", "NISN", "NAMA SISWA", "JABATAN", "RATA-RATA LATIHAN (PROSES)", "RATA-RATA JURNAL (KONSULTASI)", "NILAI AKHIR", "TINGKAT KEAKTIFAN"] ]; rows.forEach((tr, i) => { let cols = tr.querySelectorAll('td'); if(cols.length === 7) { let nisn = cols[1].querySelector('small').innerText; let nama = cols[1].innerText.replace(nisn, '').trim(); wsData.push([ cols[0].innerText, nisn, nama, cols[2].innerText, cols[3].innerText, cols[4].innerText, cols[5].innerText, cols[6].innerText ]); } }); let ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{wch:5}, {wch:15}, {wch:35}, {wch:25}, {wch:25}, {wch:25}, {wch:15}, {wch:20}]; let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `Rekap_${kelas}`); XLSX.writeFile(wb, `Rekap_Nilai_Akhir_Teater_${kelas}.xlsx`); }
 
-    // --- KOMENTAR (PERBAIKAN KEWENANGAN) ---
+    // --- KOMENTAR ---
     function bukaKomentarGlobal(id, title) { activeKomentarTargetId = id; document.getElementById('komentarTargetTitle').innerText = title; document.getElementById('commentNamaMain').value = currentUser ? currentUser.nama : ''; mKomentar.show(); loadServerComments(id); }
     function loadServerComments(id) { document.getElementById('serverCommentsArea').innerHTML = `<div class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Memuat...</div>`; fetch(`${SCRIPT_URL}?action=getComments&id=${id}`).then(res => res.json()).then(data => { if (data.success) { allServerCommentsCache = data.comments; renderCommentsHTML(); } }); }
     function renderCommentsHTML() { 
@@ -855,28 +777,10 @@
 
     function setupAbsensiHeader() { let trTgl = document.getElementById('absensiHeaderTgl'); let html = ''; for(let i=1; i<=31; i++) html += `<th class="text-center" style="font-size:11px; padding:4px;">${i}</th>`; html += `<th class="text-center text-success" style="font-size:11px; width:35px;">H</th><th class="text-center text-warning" style="font-size:11px; width:35px;">S</th><th class="text-center text-info" style="font-size:11px; width:35px;">I</th><th class="text-center text-danger" style="font-size:11px; width:35px;">A</th>`; trTgl.innerHTML = html; }
     
-    // FUNGSI INI KITA PERBARUI AGAR BISA MEMBERIKAN EFEK LOADING SAAT MENGGANTI BULAN
     function loadAbsensiDataFromServer() { 
         let bulan = document.getElementById('absensiBulanSelect').value; 
-        
-        // Tambahkan efek loading di tabel
         document.getElementById('absensiTableBody').innerHTML = `<tr><td colspan="39" class="text-center py-5 text-dark"><span class="spinner-border spinner-border-sm"></span> Sedang memuat absensi bulan ${bulan}...</td></tr>`;
-        
-        fetch(`${SCRIPT_URL}?action=getAbsensi&bulan=${bulan}`)
-        .then(r=>r.json())
-        .then(d=>{ 
-            if(d.success) { 
-                absensiCache = d.data || {}; // Update memori dengan data bulan yang baru ditarik
-                loadAbsensiTable(); 
-            } else {
-                absensiCache = {}; // Jika tidak ada, bersihkan agar kosong
-                loadAbsensiTable();
-            }
-        })
-        .catch(err => {
-            absensiCache = {};
-            loadAbsensiTable();
-        });
+        fetch(`${SCRIPT_URL}?action=getAbsensi&bulan=${bulan}`).then(r=>r.json()).then(d=>{ if(d.success) { absensiCache = d.data || {}; loadAbsensiTable(); } else { absensiCache = {}; loadAbsensiTable(); } }).catch(err => { absensiCache = {}; loadAbsensiTable(); });
     }
 
     function loadAbsensiTable() { let bulan = document.getElementById('absensiBulanSelect').value; let kelas = document.getElementById('absensiKelasSelect').value; let tbody = document.getElementById('absensiTableBody'); tbody.innerHTML = ''; let siswaKelas = allStudentsData.filter(s => s.kelas === kelas).sort((a,b)=>a.nama.localeCompare(b.nama)); if(siswaKelas.length === 0) return tbody.innerHTML = '<tr><td colspan="39" class="text-center py-4 text-dark">Data siswa belum ada.</td></tr>'; if(!absensiCache[kelas]) absensiCache[kelas] = {}; let html = ''; siswaKelas.forEach((s, idx) => { let dataSiswa = absensiCache[kelas][s.username] || {}; let tglHtml = ''; let tH=0, tS=0, tI=0, tA=0; for(let i=1; i<=31; i++) { let status = dataSiswa[i] || ''; if(status==='H') tH++; else if(status==='S') tS++; else if(status==='I') tI++; else if(status==='A') tA++; tglHtml += `<td class="cell-date cell-${status}" onclick="toggleAbsensiCell(this, '${s.username}', ${i})" data-status="${status}">${status}</td>`; } html += `<tr><td class="text-center text-dark">${idx+1}</td><td class="text-start text-dark" style="font-size:12px;">${s.nama}</td><td class="text-center text-dark" style="font-size:11px;">${s.username}</td><td class="text-center text-dark">-</td>${tglHtml}<td class="text-center text-success fw-bold bg-light" id="totH_${s.username}">${tH}</td><td class="text-center text-warning fw-bold bg-light" id="totS_${s.username}">${tS}</td><td class="text-center text-info fw-bold bg-light" id="totI_${s.username}">${tI}</td><td class="text-center text-danger fw-bold bg-light" id="totA_${s.username}">${tA}</td></tr>`; }); tbody.innerHTML = html; }
