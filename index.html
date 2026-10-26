@@ -314,7 +314,7 @@
                 <h3 class="fw-bold mb-0 text-dark-theme"><i class="bi bi-award-fill text-warning me-2"></i>Rekapan Nilai Akhir Praktik</h3>
                 <div class="d-flex gap-2">
                     <select class="form-select bg-light fw-bold text-dark" id="rekapKelasSelect" style="width: 130px;" onchange="loadRekapanNilai()"><option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="9D">9D</option><option value="9E">9E</option><option value="9F">9F</option><option value="9G">9G</option><option value="9H">9H</option><option value="9I">9I</option><option value="8J">8J</option><option value="9K">9K</option></select>
-                    <button class="btn btn-success fw-bold" onclick="exportRekapToExcel()"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</button>
+                    <button class="btn btn-success fw-bold" onclick="exportRekapToExcelAll()"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel Semua Kelas</button>
                 </div>
             </div>
             <div class="alert alert-info border-info text-dark shadow-sm">
@@ -390,7 +390,7 @@
                         <input type="file" id="customLogoInput" class="form-control form-control-sm mb-2" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="previewAndSaveLogo(this)">
                         <button class="btn btn-sm btn-primary fw-bold me-1" onclick="document.getElementById('customLogoInput').click()"><i class="bi bi-pencil-square me-1"></i> Ganti Logo Global</button>
                         <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusLogoCustom()"><i class="bi bi-trash me-1"></i> Hapus / Reset Logo</button>
-                        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Logo akan disinkronisasi ke seluruh pengunjung website (jika Server Anda mendukung).</div>
+                        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Logo akan disinkronisasi ke seluruh pengunjung website via Cloud.</div>
                     </div>
                 </div>
                 <div class="mt-4 border-top pt-3">
@@ -579,7 +579,7 @@
             document.getElementById('user-display-name').innerText = currentUser.nama; 
             document.getElementById('user-badge').innerText = currentUser.role.toUpperCase(); 
             if(currentUser.role === 'siswa') { document.getElementById('user-badge').className = 'badge bg-primary px-3 py-1'; loadStudentPersonalDashboard(currentUser.username); }
-            if(currentUser.role === 'admin') { document.getElementById('user-badge').className = 'badge bg-danger px-3 py-1'; document.getElementById('nav-produksi').classList.remove('d-none'); }
+            if(currentUser.role === 'admin') { document.getElementById('user-badge').className = 'badge bg-danger px-3 py-1'; document.getElementById('nav-produksi').classList.remove('d-none'); document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('d-none'));}
         } else { 
             currentUser = null; 
             document.getElementById('user-display-name').innerText = 'Pengunjung Umum'; 
@@ -811,7 +811,81 @@
     function cetakLaporanPDF(){ let fK=document.getElementById('filterJurnalKelas').value; let d=[...(rawHomeData.konsultasi||[])]; if(fK!=='SEMUA') d=d.filter(k=>k.kelas===fK); if(d.length===0) return alert(`Tidak ada data.`); d.sort((a,b)=>new Date(a.tanggalDb||0)-new Date(b.tanggalDb||0)); let h=`<h4>Laporan Kelas: <strong>${fK}</strong></h4>`; d.forEach((k,i)=>{ h+=`<div style="margin-bottom:20px;border-bottom:1px solid #333;padding-bottom:12px;font-family:Arial;font-size:11pt;page-break-inside:avoid;"><table width="100%"><tr><td><strong>No:</strong> ${i+1}</td><td><strong>Kls:</strong> ${k.kelas}</td><td><strong>Tgl:</strong> ${k.tanggal}</td><td><strong>Nilai:</strong> ${k.nilai}% (${k.predikat})</td></tr></table><div><strong>Judul:</strong> ${k.naskah} | <strong>Sutradara:</strong> ${k.sutradara}</div><div><strong>Divisi:</strong> ${k.divisi}</div><div><strong>Catatan:</strong> ${k.catatan}</div><div><strong>Kesimpulan:</strong> ${k.kesimpulan}</div><div><strong>Tindak Lanjut:</strong> ${k.tindakLanjut}</div></div>`; }); document.getElementById('printContentBody').innerHTML=h; document.getElementById('printArea').classList.remove('d-none'); window.print(); setTimeout(()=>document.getElementById('printArea').classList.add('d-none'),500); }
 
     function loadRekapanNilai() { let kelas = document.getElementById('rekapKelasSelect').value; document.getElementById('tableRekapBody').innerHTML = '<tr><td colspan="8" class="text-center py-4">Menghitung kalkulasi nilai akhir... <span class="spinner-border spinner-border-sm"></span></td></tr>'; fetch(`${SCRIPT_URL}?action=getRekapanAkhir&kelas=${kelas}`).then(r => r.json()).then(data => { if(data.success) { if (data.data.length === 0) { document.getElementById('tableRekapBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Belum ada data nilai/siswa untuk kelas ini.</td></tr>'; return; } let html = data.data.map((r, i) => { let badgeColor = r.keaktifan === 'Sangat Aktif' ? 'bg-success' : (r.keaktifan === 'Aktif' ? 'bg-primary' : 'bg-danger'); let nAkhir = parseFloat(r.nilaiAkhir) || 0; let ket = ""; if(nAkhir >= 90) ket = "Sangat mampu menampilkan pertunjukan secara utuh di hadapan penonton dengan penyajian estetis, percaya diri, dan kerja sama tim yang sangat solid."; else if(nAkhir >= 80) ket = "Mampu menampilkan pertunjukan secara utuh di hadapan penonton dengan penyajian yang baik dan ekspresif."; else if(nAkhir >= 70) ket = "Cukup mampu menampilkan pertunjukan secara utuh, namun masih membutuhkan sedikit pengembangan pada fokus karakter atau manajemen panggung."; else ket = "Perlu bimbingan lebih lanjut untuk dapat menampilkan pertunjukan secara utuh dengan lancar dan kooperatif di atas panggung."; return `<tr><td class="text-center text-dark">${i+1}</td><td class="fw-bold text-dark">${r.nama}<br><small class="text-muted fw-normal">${r.nisn}</small></td><td><span class="badge bg-secondary">${r.jabatan}</span></td><td class="text-center fw-bold text-info">${r.rataLatihan}</td><td class="text-center fw-bold text-success">${r.rataKonsul}</td><td class="text-center fw-bold fs-5 text-dark" style="background:#f4ece6;">${r.nilaiAkhir}</td><td class="text-center"><span class="badge ${badgeColor} px-2 py-1">${r.keaktifan}</span></td><td class="text-start text-dark" style="font-size:12px; line-height:1.4;">${ket}</td></tr>`; }).join(''); document.getElementById('tableRekapBody').innerHTML = html; } }); }
-    function exportRekapToExcel() { let kelas = document.getElementById('rekapKelasSelect').value; let rows = document.querySelectorAll('#tableRekapBody tr'); if(rows.length === 0 || rows[0].innerText.includes('Menghitung') || rows[0].innerText.includes('Belum ada data')) return alert('Data belum siap untuk diexport.'); let wsData = [ [`REKAP NILAI AKHIR PRAKTIK TEATER - KELAS ${kelas}`], [], ["NO", "NISN", "NAMA SISWA", "JABATAN", "RATA-RATA LATIHAN (PROSES)", "RATA-RATA JURNAL (KONSULTASI)", "NILAI AKHIR", "TINGKAT KEAKTIFAN", "DESKRIPSI KETERCAPAIAN KOMPETENSI"] ]; rows.forEach((tr, i) => { let cols = tr.querySelectorAll('td'); if(cols.length === 8) { let nisn = cols[1].querySelector('small').innerText; let nama = cols[1].innerText.replace(nisn, '').trim(); wsData.push([ cols[0].innerText, nisn, nama, cols[2].innerText, cols[3].innerText, cols[4].innerText, cols[5].innerText, cols[6].innerText, cols[7].innerText ]); } }); let ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{wch:5}, {wch:15}, {wch:35}, {wch:25}, {wch:25}, {wch:25}, {wch:15}, {wch:20}, {wch:60}]; let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `Rekap_${kelas}`); XLSX.writeFile(wb, `Rekap_Nilai_Akhir_Teater_${kelas}.xlsx`); }
+    
+    async function exportRekapToExcelAll() {
+        if(allStudentsData.length === 0) return alert("Data siswa belum siap.");
+        let btn = event.currentTarget;
+        let oldHTML = btn.innerHTML;
+        btn.innerHTML = 'Memproses Unduhan... <span class="spinner-border spinner-border-sm"></span>';
+        btn.disabled = true;
+
+        let wb = XLSX.utils.book_new();
+        let classes = ["9A", "9B", "9C", "9D", "9E", "9F", "9G", "9H", "9I", "8J", "9K"];
+        
+        for (let kls of classes) {
+            try {
+                let res = await fetch(`${SCRIPT_URL}?action=getRekapanAkhir&kelas=${kls}`);
+                let data = await res.json();
+                
+                if(data.success && data.data && data.data.length > 0) {
+                    let wsData = [
+                        [`REKAP NILAI AKHIR PRAKTIK TEATER - KELAS ${kls}`],
+                        [],
+                        ["NO", "NISN", "NAMA SISWA", "JABATAN", "RATA-RATA LATIHAN (PROSES)", "RATA-RATA JURNAL (KONSULTASI)", "NILAI AKHIR", "TINGKAT KEAKTIFAN", "DESKRIPSI KETERCAPAIAN KOMPETENSI"]
+                    ];
+                    
+                    data.data.forEach((r, i) => {
+                         let nAkhir = parseFloat(r.nilaiAkhir) || 0;
+                         let ket = "";
+                         if(nAkhir >= 90) ket = "Sangat mampu menampilkan pertunjukan secara utuh di hadapan penonton dengan penyajian estetis, percaya diri, dan kerja sama tim yang sangat solid.";
+                         else if(nAkhir >= 80) ket = "Mampu menampilkan pertunjukan secara utuh di hadapan penonton dengan penyajian yang baik dan ekspresif.";
+                         else if(nAkhir >= 70) ket = "Cukup mampu menampilkan pertunjukan secara utuh, namun masih membutuhkan sedikit pengembangan pada fokus karakter atau manajemen panggung.";
+                         else ket = "Perlu bimbingan lebih lanjut untuk dapat menampilkan pertunjukan secara utuh dengan lancar dan kooperatif di atas panggung.";
+                         
+                         wsData.push([
+                             i+1,
+                             r.nisn,
+                             r.nama,
+                             r.jabatan,
+                             r.rataLatihan,
+                             r.rataKonsul,
+                             r.nilaiAkhir,
+                             r.keaktifan,
+                             ket
+                         ]);
+                    });
+                    
+                    let ws = XLSX.utils.aoa_to_sheet(wsData);
+                    
+                    // Style colors logic could be added using sheetjs-style, but with pure xlsx we can only set column widths easily.
+                    ws['!cols'] = [
+                        {wch: 5},   // No
+                        {wch: 15},  // NISN
+                        {wch: 35},  // Nama
+                        {wch: 25},  // Jabatan
+                        {wch: 28},  // Rata Latihan
+                        {wch: 28},  // Rata Jurnal
+                        {wch: 15},  // Nilai Akhir
+                        {wch: 20},  // Keaktifan
+                        {wch: 70}   // Deskripsi
+                    ];
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, kls);
+                }
+            } catch (e) {
+                console.error("Gagal mengambil data untuk kelas " + kls, e);
+            }
+        }
+        
+        if(wb.SheetNames.length > 0) {
+            XLSX.writeFile(wb, `Rekap_Nilai_Akhir_Semua_Kelas.xlsx`);
+        } else {
+            alert("Tidak ada data rekapan yang tersedia untuk diunduh.");
+        }
+        
+        btn.innerHTML = oldHTML;
+        btn.disabled = false;
+    }
 
     // --- KOMENTAR ---
     function bukaKomentarGlobal(id, title) { activeKomentarTargetId = id; document.getElementById('komentarTargetTitle').innerText = title; document.getElementById('commentNamaMain').value = currentUser ? currentUser.nama : ''; mKomentar.show(); loadServerComments(id); }
